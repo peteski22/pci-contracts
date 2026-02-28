@@ -57,7 +57,7 @@ export interface ValidationRequest {
   proofReference: string;
   /** Access timestamp for audit */
   accessTime: number;
-  /** Payment amount in lovelace (must meet minPayment) */
+  /** Payment amount (must meet minPayment). Units match policy's paymentCurrency. */
   paymentAmount: bigint;
 }
 

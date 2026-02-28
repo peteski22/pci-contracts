@@ -7,6 +7,7 @@
 
 import { Data, Constr } from "@lucid-evolution/lucid";
 import type { SPALPolicy, IdentityLinkage, ValidationRequest, PaymentCurrency } from "../types.js";
+import { validatePaymentCurrency } from "../types.js";
 
 /**
  * Text encoder for converting strings to ByteArray
@@ -55,9 +56,13 @@ export function buildIdentityLinkage(linkage: IdentityLinkage): Constr<Data> {
  *   NativeToken { policy_id: ByteArray, asset_name: ByteArray } // Constr(1, [policy_id, asset_name])
  * }
  * ```
+ *
+ * Validates NativeToken fields before serialization to prevent invalid on-chain data.
  */
-export function buildPaymentCurrency(currency?: PaymentCurrency): Constr<Data> {
-  if (!currency || currency.kind === "Ada") {
+export function buildPaymentCurrency(currency: PaymentCurrency): Constr<Data> {
+  validatePaymentCurrency(currency);
+
+  if (currency.kind === "Ada") {
     return new Constr(0, []);
   }
   return new Constr(1, [currency.policyId, currency.assetName]);

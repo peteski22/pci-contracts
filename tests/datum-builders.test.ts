@@ -19,6 +19,7 @@ import {
 } from "../src/lucid/datum-builders.js";
 import { Data, Constr } from "@lucid-evolution/lucid";
 import type { SPALPolicy, ValidationRequest, IdentityLinkage, PaymentCurrency } from "../src/types.js";
+import { validatePaymentCurrency } from "../src/types.js";
 
 describe("Datum Builders", () => {
   const testPolicy: SPALPolicy = {
@@ -158,9 +159,9 @@ describe("Datum Builders", () => {
       expect(parsed.minPayment).toBe(tokenPolicy.minPayment);
     });
 
-    it("should default to Ada when paymentCurrency is omitted", () => {
-      const policyNoExplicitCurrency: SPALPolicy = {
-        id: "spal:test:default",
+    it("should reject invalid NativeToken policyId at serialization boundary", () => {
+      const badPolicy: SPALPolicy = {
+        id: "spal:test:bad",
         ownerPkh: "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
         minPayment: 0n,
         maxRetentionMs: 86400000,
@@ -171,12 +172,14 @@ describe("Datum Builders", () => {
         },
         requiredProofHash: "",
         contextScope: "general",
-        // paymentCurrency intentionally omitted
+        paymentCurrency: {
+          kind: "NativeToken",
+          policyId: "", // empty — would collide with ADA on-chain
+          assetName: "5553444378",
+        },
       };
 
-      const cbor = serializeDatum(policyNoExplicitCurrency);
-      const parsed = deserializeDatum(cbor);
-      expect(parsed.paymentCurrency).toEqual({ kind: "Ada" });
+      expect(() => serializeDatum(badPolicy)).toThrow("Invalid policyId");
     });
   });
 
@@ -245,11 +248,24 @@ describe("Datum Builders", () => {
       expect(result.fields[1]).toBe(currency.assetName);
     });
 
-    it("should default to Ada when undefined", () => {
-      const result = buildPaymentCurrency(undefined);
-      expect(result).toBeInstanceOf(Constr);
-      expect(result.index).toBe(0);
-      expect(result.fields.length).toBe(0);
+    it("should reject NativeToken with invalid policyId", () => {
+      expect(() =>
+        buildPaymentCurrency({
+          kind: "NativeToken",
+          policyId: "",
+          assetName: "5553444378",
+        })
+      ).toThrow("Invalid policyId");
+    });
+
+    it("should reject NativeToken with oversized assetName", () => {
+      expect(() =>
+        buildPaymentCurrency({
+          kind: "NativeToken",
+          policyId: "aabb00112233445566778899aabbccddeeff00112233445566778899",
+          assetName: "aa".repeat(33),
+        })
+      ).toThrow("Invalid assetName");
     });
 
     it("should round-trip Ada through parse", () => {

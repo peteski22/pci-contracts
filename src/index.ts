@@ -34,6 +34,14 @@ export {
   deserializeDatum,
 } from "./lucid/datum-builders.js";
 
+// PaymentCurrency validation and type guards
+export {
+  validatePaymentCurrency,
+  isAda,
+  isNativeToken,
+  assertNeverCurrency,
+} from "./types.js";
+
 // Types
 export type {
   // Core types

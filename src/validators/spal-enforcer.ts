@@ -179,8 +179,7 @@ export class SPALEnforcer {
     // 2. Check payment if required
     if (policy.minPayment > 0n) {
       if (request.paymentAmount < policy.minPayment) {
-        const currency = policy.paymentCurrency ?? { kind: "Ada" as const };
-        const unit = currency.kind === "NativeToken" ? "token units" : "lovelace";
+        const unit = policy.paymentCurrency.kind === "NativeToken" ? "token units" : "lovelace";
         return {
           valid: false,
           error: `Insufficient payment: required ${policy.minPayment} ${unit}, got ${request.paymentAmount} ${unit}`,
@@ -310,13 +309,11 @@ export class SPALEnforcer {
       const paymentCredential = keyHashToCredential(policy.ownerPkh);
       const ownerAddress = credentialToAddress(this.network, paymentCredential);
 
-      const currency = policy.paymentCurrency ?? { kind: "Ada" as const };
-
-      if (currency.kind === "NativeToken") {
+      if (policy.paymentCurrency.kind === "NativeToken") {
         // Native token payment: include token amount + min-ADA for UTxO viability
         txBuilder = txBuilder.pay.ToAddress(ownerAddress, {
           lovelace: MIN_UTXO_LOVELACE,
-          [currency.policyId + currency.assetName]: request.paymentAmount,
+          [policy.paymentCurrency.policyId + policy.paymentCurrency.assetName]: request.paymentAmount,
         });
       } else {
         // Ada payment: lovelace only

@@ -75,7 +75,7 @@ describe("SPALEnforcer", () => {
       expect(result.valid).toBe(true);
     });
 
-    it("should reject insufficient payment", async () => {
+    it("should reject insufficient payment (Ada)", async () => {
       const policyWithPayment: SPALPolicy = {
         ...testPolicy,
         minPayment: 1_000_000n, // 1 ADA
@@ -84,9 +84,10 @@ describe("SPALEnforcer", () => {
       const result = await enforcer.validate(policyWithPayment, validRequest);
       expect(result.valid).toBe(false);
       expect(result.error).toContain("Insufficient payment");
+      expect(result.error).toContain("lovelace");
     });
 
-    it("should accept valid payment", async () => {
+    it("should accept valid payment (Ada)", async () => {
       const policyWithPayment: SPALPolicy = {
         ...testPolicy,
         minPayment: 1_000_000n,
@@ -98,6 +99,43 @@ describe("SPALEnforcer", () => {
       };
 
       const result = await enforcer.validate(policyWithPayment, requestWithPayment);
+      expect(result.valid).toBe(true);
+    });
+
+    it("should reject insufficient payment (NativeToken)", async () => {
+      const policyWithToken: SPALPolicy = {
+        ...testPolicy,
+        minPayment: 5_000_000n, // 5 USDCx (6 decimals)
+        paymentCurrency: {
+          kind: "NativeToken",
+          policyId: "aabb00112233445566778899aabbccddeeff00112233445566778899",
+          assetName: "5553444378",
+        },
+      };
+
+      const result = await enforcer.validate(policyWithToken, validRequest);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Insufficient payment");
+      expect(result.error).toContain("token units");
+    });
+
+    it("should accept valid payment (NativeToken)", async () => {
+      const policyWithToken: SPALPolicy = {
+        ...testPolicy,
+        minPayment: 5_000_000n, // 5 USDCx
+        paymentCurrency: {
+          kind: "NativeToken",
+          policyId: "aabb00112233445566778899aabbccddeeff00112233445566778899",
+          assetName: "5553444378",
+        },
+      };
+
+      const requestWithPayment: ValidationRequest = {
+        ...validRequest,
+        paymentAmount: 5_000_000n,
+      };
+
+      const result = await enforcer.validate(policyWithToken, requestWithPayment);
       expect(result.valid).toBe(true);
     });
 

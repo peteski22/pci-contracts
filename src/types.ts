@@ -15,12 +15,26 @@ export interface IdentityLinkage {
   zkContinuityAllowed: boolean;
 }
 
+/**
+ * Payment currency for S-PAL policies.
+ *
+ * - `{ kind: "Ada" }` - Payment denominated in lovelace (1 ADA = 1,000,000 lovelace)
+ * - `{ kind: "NativeToken", policyId, assetName }` - Payment denominated in a native token
+ *   (e.g., USDCx uses 6 decimal places: 1 USDCx = 1,000,000 micro-USDCx)
+ *
+ * Note: Every Cardano UTxO must carry minimum ADA (~1.2-2 ADA) even for pure token transfers.
+ * One currency per policy; "accept either" is not supported in MVP.
+ */
+export type PaymentCurrency =
+  | { kind: "Ada" }
+  | { kind: "NativeToken"; policyId: string; assetName: string };
+
 export interface SPALPolicy {
   /** Policy identifier */
   id: string;
   /** Policy owner's public key hash */
   ownerPkh: string;
-  /** Minimum payment in lovelace (0 = no payment required) */
+  /** Minimum payment amount (0 = no payment required). Units depend on paymentCurrency. */
   minPayment: bigint;
   /** Maximum data retention in milliseconds */
   maxRetentionMs: number;
@@ -30,6 +44,8 @@ export interface SPALPolicy {
   requiredProofHash: string;
   /** Data context scope path (e.g., "medical/diagnosis_codes") */
   contextScope: string;
+  /** Payment currency (Ada or native token). Defaults to Ada if omitted. */
+  paymentCurrency?: PaymentCurrency;
 }
 
 export interface ValidationRequest {

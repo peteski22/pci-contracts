@@ -6,7 +6,7 @@
  */
 
 import { Data, Constr } from "@lucid-evolution/lucid";
-import type { SPALPolicy, IdentityLinkage, ValidationRequest } from "../types.js";
+import type { SPALPolicy, IdentityLinkage, ValidationRequest, PaymentCurrency } from "../types.js";
 
 /**
  * Text encoder for converting strings to ByteArray
@@ -46,6 +46,24 @@ export function buildIdentityLinkage(linkage: IdentityLinkage): Constr<Data> {
 }
 
 /**
+ * Build PaymentCurrency as Plutus Data
+ *
+ * Matches Aiken type:
+ * ```aiken
+ * pub type PaymentCurrency {
+ *   Ada                                                    // Constr(0, [])
+ *   NativeToken { policy_id: ByteArray, asset_name: ByteArray } // Constr(1, [policy_id, asset_name])
+ * }
+ * ```
+ */
+export function buildPaymentCurrency(currency?: PaymentCurrency): Constr<Data> {
+  if (!currency || currency.kind === "Ada") {
+    return new Constr(0, []);
+  }
+  return new Constr(1, [currency.policyId, currency.assetName]);
+}
+
+/**
  * Build PolicyDatum as Plutus Data
  *
  * Matches Aiken type:
@@ -57,6 +75,7 @@ export function buildIdentityLinkage(linkage: IdentityLinkage): Constr<Data> {
  *   identity_linkage: IdentityLinkage,
  *   required_proof_hash: ByteArray,
  *   context_scope: ByteArray,
+ *   payment_currency: PaymentCurrency,
  * }
  * ```
  */
@@ -68,6 +87,7 @@ export function buildPolicyDatum(policy: SPALPolicy): Constr<Data> {
     buildIdentityLinkage(policy.identityLinkage), // IdentityLinkage
     policy.requiredProofHash || "", // ByteArray (hex string, empty if no proof required)
     stringToHex(policy.contextScope), // ByteArray (hex-encoded string)
+    buildPaymentCurrency(policy.paymentCurrency), // PaymentCurrency
   ]);
 }
 
@@ -145,6 +165,34 @@ function hexToString(hex: string): string {
 }
 
 /**
+ * Parse PaymentCurrency from Plutus Data
+ */
+export function parsePaymentCurrency(data: Data): PaymentCurrency {
+  if (!(data instanceof Constr)) {
+    throw new Error("Invalid PaymentCurrency data: expected Constr");
+  }
+
+  if (data.index === 0) {
+    return { kind: "Ada" };
+  }
+
+  if (data.index === 1) {
+    if (data.fields.length !== 2) {
+      throw new Error(
+        `Invalid NativeToken data: expected 2 fields, got ${data.fields.length}`
+      );
+    }
+    return {
+      kind: "NativeToken",
+      policyId: data.fields[0] as string,
+      assetName: data.fields[1] as string,
+    };
+  }
+
+  throw new Error(`Invalid PaymentCurrency constructor index: ${data.index}`);
+}
+
+/**
  * Parse PolicyDatum from Plutus Data
  */
 export function parsePolicyDatum(data: Data): SPALPolicy {
@@ -153,8 +201,8 @@ export function parsePolicyDatum(data: Data): SPALPolicy {
   }
 
   const fields = data.fields;
-  if (fields.length !== 6) {
-    throw new Error(`Invalid PolicyDatum data: expected 6 fields, got ${fields.length}`);
+  if (fields.length !== 7) {
+    throw new Error(`Invalid PolicyDatum data: expected 7 fields, got ${fields.length}`);
   }
 
   return {
@@ -165,6 +213,7 @@ export function parsePolicyDatum(data: Data): SPALPolicy {
     identityLinkage: parseIdentityLinkage(fields[3]),
     requiredProofHash: fields[4] as string,
     contextScope: hexToString(fields[5] as string),
+    paymentCurrency: parsePaymentCurrency(fields[6]),
   };
 }
 

@@ -25,8 +25,10 @@ export {
   buildPolicyDatum,
   buildAccessRedeemer,
   buildIdentityLinkage,
+  buildPaymentCurrency,
   parsePolicyDatum,
   parseIdentityLinkage,
+  parsePaymentCurrency,
   serializeDatum,
   serializeRedeemer,
   deserializeDatum,
@@ -36,6 +38,7 @@ export {
 export type {
   // Core types
   IdentityLinkage,
+  PaymentCurrency,
   SPALPolicy,
   ValidationRequest,
   ValidationResult,

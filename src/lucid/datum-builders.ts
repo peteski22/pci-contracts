@@ -187,11 +187,13 @@ export function parsePaymentCurrency(data: Data): PaymentCurrency {
         `Invalid NativeToken data: expected 2 fields, got ${data.fields.length}`
       );
     }
-    return {
-      kind: "NativeToken",
+    const parsed = {
+      kind: "NativeToken" as const,
       policyId: data.fields[0] as string,
       assetName: data.fields[1] as string,
     };
+    validatePaymentCurrency(parsed);
+    return parsed;
   }
 
   throw new Error(`Invalid PaymentCurrency constructor index: ${data.index}`);

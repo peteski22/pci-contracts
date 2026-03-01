@@ -357,3 +357,31 @@ test check_payment_native_token_below_minimum() {
     NativeToken { policy_id: token_policy, asset_name: token_name },
   )
 }
+
+// Claimed amount meets min_payment but actual token output is less than claimed
+test check_payment_native_token_claimed_exceeds_actual() {
+  let owner = #"0011223344556677889900112233445566778899001122334455667788990011"
+  let token_policy = #"aabb00112233445566778899aabbccddeeff00112233445566778899"
+  let token_name = #"5553444378"
+  let owner_address =
+    Address { payment_credential: VerificationKey(owner), stake_credential: None }
+  // Owner receives sufficient lovelace but fewer tokens than claimed
+  let base_value = from_lovelace(2_000_000)
+  let value_with_token =
+    assets.add(base_value, token_policy, token_name, 4_000_000)
+  let output =
+    Output {
+      address: owner_address,
+      value: value_with_token,
+      datum: NoDatum,
+      reference_script: None,
+    }
+  let tx = Transaction { ..transaction.placeholder, outputs: [output] }
+  !check_payment(
+    tx,
+    owner,
+    2_000_000,
+    5_000_000,
+    NativeToken { policy_id: token_policy, asset_name: token_name },
+  )
+}

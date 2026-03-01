@@ -24,6 +24,7 @@ import type {
   LucidConfig,
   PolicyUtxo,
 } from "../types.js";
+import { validatePaymentCurrency } from "../types.js";
 import { compileValidator } from "../compile.js";
 import { initializeLucid } from "../lucid/provider.js";
 import {
@@ -310,6 +311,9 @@ export class SPALEnforcer {
       const ownerAddress = credentialToAddress(this.network, paymentCredential);
 
       if (policy.paymentCurrency.kind === "NativeToken") {
+        // Validate before constructing the native asset unit key
+        validatePaymentCurrency(policy.paymentCurrency);
+
         // Native token payment: include token amount + min-ADA for UTxO viability
         txBuilder = txBuilder.pay.ToAddress(ownerAddress, {
           lovelace: MIN_UTXO_LOVELACE,

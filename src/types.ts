@@ -64,20 +64,24 @@ export function validatePaymentCurrency(c: PaymentCurrency): void {
 
   const HEX_RE = /^[0-9a-fA-F]*$/;
 
-  if (typeof c.policyId !== "string" || c.policyId.length !== 56 || !HEX_RE.test(c.policyId)) {
+  const pid = typeof c.policyId === "string" ? c.policyId : String(c.policyId ?? "");
+  const pidLen = typeof c.policyId === "string" ? c.policyId.length : 0;
+  if (typeof c.policyId !== "string" || pidLen !== 56 || !HEX_RE.test(pid)) {
     throw new Error(
-      `Invalid policyId: must be exactly 56 hex characters, got "${c.policyId}" (${c.policyId.length} chars)`
+      `Invalid policyId: must be exactly 56 hex characters, got "${pid}" (${pidLen} chars)`
     );
   }
 
+  const an = typeof c.assetName === "string" ? c.assetName : String(c.assetName ?? "");
+  const anLen = typeof c.assetName === "string" ? c.assetName.length : 0;
   if (
     typeof c.assetName !== "string" ||
-    c.assetName.length > 64 ||
-    c.assetName.length % 2 !== 0 ||
-    !HEX_RE.test(c.assetName)
+    anLen > 64 ||
+    anLen % 2 !== 0 ||
+    !HEX_RE.test(an)
   ) {
     throw new Error(
-      `Invalid assetName: must be 0–64 even-length hex characters, got "${c.assetName}" (${c.assetName.length} chars)`
+      `Invalid assetName: must be 0–64 even-length hex characters, got "${an}" (${anLen} chars)`
     );
   }
 }

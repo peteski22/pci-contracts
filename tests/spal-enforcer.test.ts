@@ -175,7 +175,8 @@ describe("SPALEnforcer", () => {
 
       const requestWithProof: ValidationRequest = {
         ...validRequest,
-        proofCommitment: "proof_hash_xyz123",
+        proofCommitment:
+          "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       }
 
       const result = await enforcer.validate(policyWithProof, requestWithProof)

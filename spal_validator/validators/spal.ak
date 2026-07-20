@@ -7,7 +7,7 @@ use aiken/crypto
 use aiken/primitive/bytearray
 use cardano/address.{Address, Credential, Script, VerificationKey}
 use cardano/assets.{from_lovelace, lovelace_of, quantity_of}
-use cardano/transaction.{NoDatum, Output, OutputReference, Transaction}
+use cardano/transaction.{Input, NoDatum, Output, OutputReference, Transaction}
 
 /// Domain-separation tag for S-PAL public inputs.
 ///
@@ -567,6 +567,93 @@ test proof_commitment_does_not_replay_across_utxos() {
   let public_input_b =
     reconstruct_public_input(sh, other_ref, sample_policy(), sample_redeemer())
   commitment_a != crypto.blake2b_256(public_input_b)
+}
+
+/// A transaction whose sole input is the policy UTxO at the given script
+/// address, signed by `owner` — the minimum context for driving `spal.spend`
+/// and resolving `own_script_hash`.
+fn spend_tx(
+  script_hash: ByteArray,
+  utxo: OutputReference,
+  owner: ByteArray,
+) -> Transaction {
+  let script_input =
+    Input {
+      output_reference: utxo,
+      output: Output {
+        address: Address {
+          payment_credential: Script(script_hash),
+          stake_credential: None,
+        },
+        value: from_lovelace(2_000_000),
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+  Transaction {
+    ..transaction.placeholder,
+    inputs: [script_input],
+    extra_signatories: [owner],
+  }
+}
+
+/// End-to-end: a commitment computed from the resolved script hash and the
+/// spending context is accepted, exercising `own_script_hash` and the binding.
+test spend_accepts_bound_proof_commitment() {
+  let owner =
+    #"0011223344556677889900112233445566778899001122334455667788990011"
+  let script_hash = #"00112233445566778899aabbccddeeff00112233445566778899aabb"
+  let utxo = sample_spend_ref()
+  let policy = PolicyDatum { ..sample_policy(), owner: owner, min_payment: 0 }
+  let base_redeemer = AccessRedeemer { ..sample_redeemer(), payment_amount: 0 }
+  let public_input =
+    reconstruct_public_input(script_hash, utxo, policy, base_redeemer)
+  let redeemer =
+    AccessRedeemer {
+      ..base_redeemer,
+      proof_commitment: crypto.blake2b_256(public_input),
+    }
+  spal.spend(Some(policy), redeemer, utxo, spend_tx(script_hash, utxo, owner))
+}
+
+/// End-to-end: a commitment not bound to the reconstructed public input is
+/// rejected even though it is non-empty (passes the shape check).
+test spend_rejects_unbound_proof_commitment() {
+  let owner =
+    #"0011223344556677889900112233445566778899001122334455667788990011"
+  let script_hash = #"00112233445566778899aabbccddeeff00112233445566778899aabb"
+  let utxo = sample_spend_ref()
+  let policy = PolicyDatum { ..sample_policy(), owner: owner, min_payment: 0 }
+  let redeemer =
+    AccessRedeemer {
+      ..sample_redeemer(),
+      payment_amount: 0,
+      proof_commitment: #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    }
+  !spal.spend(Some(policy), redeemer, utxo, spend_tx(script_hash, utxo, owner))
+}
+
+/// End-to-end: when the policy requires no proof, the binding short-circuits and
+/// an empty commitment is accepted.
+test spend_accepts_when_no_proof_required() {
+  let owner =
+    #"0011223344556677889900112233445566778899001122334455667788990011"
+  let script_hash = #"00112233445566778899aabbccddeeff00112233445566778899aabb"
+  let utxo = sample_spend_ref()
+  let policy =
+    PolicyDatum {
+      ..sample_policy(),
+      owner: owner,
+      min_payment: 0,
+      required_proof_hash: #"",
+    }
+  let redeemer =
+    AccessRedeemer {
+      ..sample_redeemer(),
+      payment_amount: 0,
+      proof_commitment: #"",
+    }
+  spal.spend(Some(policy), redeemer, utxo, spend_tx(script_hash, utxo, owner))
 }
 
 test payment_commitment_is_deterministic() {

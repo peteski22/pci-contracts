@@ -80,9 +80,9 @@ preimage = domain_sep_spal
 pub = Blake2b-256(preimage)          // 32 bytes
 ```
 
-`policy_hash` (component 3) already commits to the entire `PolicyDatum`,
+`policy_hash` (component 4) already commits to the entire `PolicyDatum`,
 including `context_scope`, `required_proof_hash`, and `payment_currency`.
-Components 4, 5, and the currency portion of 8 are therefore redundant with
+Components 5, 6, and the currency portion of 9 are therefore redundant with
 `policy_hash`; they are retained deliberately so each field the circuit consumes
 is bound explicitly and mirrors the circuit's public-input layout.
 

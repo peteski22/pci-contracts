@@ -108,24 +108,25 @@ export function buildPolicyDatum(policy: SPALPolicy): Constr<Data> {
  * ```aiken
  * pub type AccessRedeemer {
  *   requester_did: ByteArray,
- *   proof_reference: ByteArray,
+ *   proof_commitment: ByteArray,
  *   access_time: Int,
  *   payment_amount: Int,
  * }
  * ```
  */
 export function buildAccessRedeemer(request: ValidationRequest): Constr<Data> {
-  // Convert proof reference to hex if it's not already hex
-  // (empty string stays empty, otherwise convert)
-  const proofHex = request.proofReference
-    ? isHex(request.proofReference)
-      ? request.proofReference
-      : stringToHex(request.proofReference)
+  // proof_commitment is a hex-encoded hash. Pass hex through unchanged and
+  // utf8-encode any non-hex value so placeholder strings still serialize.
+  // Empty string stays empty (no proof required).
+  const commitmentHex = request.proofCommitment
+    ? isHex(request.proofCommitment)
+      ? request.proofCommitment
+      : stringToHex(request.proofCommitment)
     : ""
 
   return new Constr(0, [
     stringToHex(request.requesterDid), // ByteArray (hex-encoded DID)
-    proofHex, // ByteArray (hex string, empty if no proof)
+    commitmentHex, // ByteArray (hex string, empty if no proof)
     BigInt(request.accessTime), // Int (bigint)
     request.paymentAmount, // Int (bigint)
   ])

@@ -42,7 +42,7 @@ describe("Datum Builders", () => {
 
   const testRequest: ValidationRequest = {
     requesterDid: "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
-    proofReference: "proof123abc",
+    proofCommitment: "proof123abc",
     accessTime: 1704067200000,
     paymentAmount: 1_000_000n,
   }
@@ -209,10 +209,10 @@ describe("Datum Builders", () => {
       expect(result.fields[3]).toBe(testRequest.paymentAmount)
     })
 
-    it("should handle empty proof reference", () => {
+    it("should handle empty proof commitment", () => {
       const requestNoProof: ValidationRequest = {
         ...testRequest,
-        proofReference: "",
+        proofCommitment: "",
       }
 
       const result = buildAccessRedeemer(requestNoProof)
